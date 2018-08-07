@@ -1,4 +1,4 @@
-```jade
+```xml
 <mirror>
     <id>nexus-aliyun</id>
     <mirrorOf>*</mirrorOf>
@@ -6,4 +6,6 @@
     <url>http://maven.aliyun.com/nexus/content/groups/public</url>
 </mirror>
 ```
+
+
 
