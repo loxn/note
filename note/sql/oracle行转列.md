@@ -1,4 +1,4 @@
-![img](D:\note\img\12) 
+![img](D:\笔记\img\12) 
 
 SELECT t.CUBE_TYPE as type,
 
@@ -8,4 +8,4 @@ max(decode(t.DIMENSIONS,'Y',DEMARCATION,null)) as yValue
 
 from d_pos_cube_config t GROUP BY t.CUBE_TYPE
 
-![img](D:\note\img\13)
+![img](D:\笔记\img\13)

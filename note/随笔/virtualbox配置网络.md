@@ -4,13 +4,13 @@
 
 使用host-only模式
 
-![img](D:\note\img\1)
+![img](D:\笔记\img\1)
 
-![img](D:\note\img\2)
+![img](D:\笔记\img\2)
 
 全局设置不用管
 
-![img](D:\note\img\3)
+![img](D:\笔记\img\3)
 
 vi /etc/sysconfig/network-scripts/ifcfg-eth0
 
@@ -36,4 +36,4 @@ DNS1=192.168.137.1
 
 二.配置host-only访问外网
 
-![img](D:\note\img\4)
+![img](D:\笔记\img\4)
