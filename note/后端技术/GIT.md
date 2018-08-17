@@ -17,7 +17,7 @@ git add . # 将目录下所有的文件添加到 暂存区
 git reset filename # 撤销add操作
 ```
 
-## commit
+## commit&reset
 
 ```shell
 git commit -m 'init commit' # 提交 暂存区 的文件到 本地工作区
@@ -27,6 +27,7 @@ git reset --soft HEAD^ # 撤销一次commit，或者HEAD~1，--soft，不会撤�
 git reset --soft HEAD~2 # 撤销两次commit
 git reset --mixed HEAD^ # 撤销一次commit，并且撤销 add
 git reset --hard HEAD^ # 撤销commit，文件也会 revert
+git reset --hard [commit_id] # 撤销到某次提交
 ```
 
 ## push
