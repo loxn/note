@@ -73,17 +73,22 @@ git branch # 查看当前分支
 git branch -a # 查看所有分支，本地和远端
 git branch -r # 查看远端所有分支
 git branch --contains [commit_id] # 查看含有某个commit_id的分支
+git branch --merged # 查看已经合并到当前分支的分支
+git branch --no-merged # 查看没有合并到当前分支的分支
+git branch -D [branch_name] # 删除分支，不能删除当前分支
+git push origin --delete dev # 删除远端分支
 
 git branch [branch_name] # 从当前分支创建新分支
 git branch -m [branch_name] [new_branch_name] # 修改本地分支的名称
-git checkout [branch_name] # 切换到分支
+git checkout [branch_name] # 切换到分支,当前分支必须先提交到本地库
 git checkout -b [branch_name] # 从当前分支创建并切到新分支
 git checkout -b dev origin/dev # 从远端dev分支创建本地的dev分支
-git checkout v2.0  # 切到某个tag
+
 git merge [branch_name] # 合并本地分支到当前分支
 git merge origin/master # 合并远端master到本地分支
-git branch --merged # 查看已经合并到当前分支的分支
-git branch --no-merged # 查看没有合并到当前分支的分支
+
+git checkout v2.0  # 切到某个tag
+
 ```
 
 ## diff
