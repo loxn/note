@@ -60,12 +60,6 @@ git show v1.0 # 查看tag
 git push --tags # 推送所有tag到远端
 ```
 
-## checkout
-
-```shell
-git checkout filename # 从本地工作区还原文件
-```
-
 ## branch&checkout
 
 ```shell
@@ -88,7 +82,8 @@ git merge [branch_name] # 合并本地分支到当前分支
 git merge origin/master # 合并远端master到本地分支
 
 git checkout v2.0  # 切到某个tag
-
+git checkout filename # 从暂存区还原文件
+git checkout HEAD filename # 从本地库还原文件
 ```
 
 ## diff
