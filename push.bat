@@ -1,4 +1,4 @@
-﻿cd D:\\笔记
+﻿echo "自动提交"
 git add .
 git commit -m "daily commit"
 git push origin master
