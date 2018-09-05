@@ -1,4 +1,4 @@
 cd D:\\笔记
 git add .
-git commit -m '日常提交'
+git commit -m 'dailycommit'
 git push origin master
