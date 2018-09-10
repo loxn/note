@@ -26,7 +26,7 @@ git commit --amend -m 'change commit info' # 修改commit信息
 git reset --soft HEAD^ # 撤销一次commit，或者HEAD~1，--soft，不会撤销 add
 git reset --soft HEAD~2 # 撤销两次commit
 git reset --mixed HEAD^ # 撤销一次commit，并且撤销 add
-git reset --hard HEAD^ # 撤销commit，文件也会 revert
+git reset --hard HEAD^ # 撤销commit和add，文件也会 revert
 git reset --hard [commit_id] # 撤销到某次提交
 ```
 
