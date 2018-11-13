@@ -81,6 +81,7 @@ git checkout -b dev origin/dev # 从远端dev分支创建本地的dev分支
 
 git merge [branch_name] # 合并本地分支到当前分支
 git merge origin/master # 合并远端master到本地分支
+git merge --abort # 终止merge
 
 git checkout v2.0  # 切到某个tag
 git checkout filename # 从暂存区还原文件
