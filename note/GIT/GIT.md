@@ -4,6 +4,8 @@
 git init # 初始化git目录，然后添加文件
 git config --global user.name "xxx" 
 git config --global user.email "xxx@xxx.com"
+ssh-keygen -t rsa -C "your_email@youremail.com"
+
 git remote add origin git@github.com:loxn/git-demo.git # 连接到远端库
 git clone git@github.com:loxn/git-demo.git # 下载代码
 ```
