@@ -7,3 +7,4 @@
 远程访问mysql慢
 
 /etc/my.conf文件中的 mysqld 下加 skip-name-resolve
+

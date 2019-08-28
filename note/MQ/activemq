@@ -1,0 +1,752 @@
+# 1、概述
+
+ 
+
+## 1.1、 启动服务
+
+./bin/activemq > runlog.log
+
+![](D:\笔记\img\wps2.jpg) 
+
+61616是提供jms服务的端口
+
+8161图形界面管理系统端口号
+
+访问http://node1:8161/admin
+
+账号	admin:admin
+
+# 2、 队列queue（点对点）
+
+一条消息只发给一个消费者，消费者和生产者谁先启动无所谓
+
+但是一对多模式，要先启动消费者，否则，消费者启动之前的消息都是废消息，不会被消费
+
+## 2.1、 消息生产者
+
+ ```xml
+<dependency>
+    <groupId>org.apache.activemq</groupId>
+    <artifactId>activemq-all</artifactId>
+    <version>5.15.9</version>
+</dependency>
+<!-- https://mvnrepository.com/artifact/org.apache.xbean/xbean-spring -->
+<dependency>
+    <groupId>org.apache.xbean</groupId>
+    <artifactId>xbean-spring</artifactId>
+    <version>3.16</version>
+</dependency>
+<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.9.5</version>
+</dependency>
+ ```
+
+
+
+ ```java
+public static void main(String[] args) {
+	
+	ConnectionFactory connectionFactory = null; // 连接工厂
+	Connection connection = null; // 连接
+	Session session = null; // 会话 接受或者发送消息的线程
+	Destination destination = null; // 消息的目的地
+	MessageProducer messageProducer = null; // 消息生产者
+	
+	// 实例化连接工厂
+	connectionFactory = new ActiveMQConnectionFactory(ActiveMQConnection.DEFAULT_USER, 
+ActiveMQConnection.DEFAULT_PASSWORD, ActiveMQConnection.DEFAULT_BROKER_URL);
+	
+	try {
+		connection = connectionFactory.createConnection(); // 通过连接工厂获取连接
+		connection.start(); // 启动连接
+		session = connection.createSession(Boolean.TRUE, Session.AUTO_ACKNOWLEDGE); // 创建Session
+		destination = session.createQueue("FirstQueue1"); // 创建消息队列
+		messageProducer = session.createProducer(destination); // 创建消息生产者
+		
+		TextMessage message = session.createTextMessage("ActiveMQ 发送的消息");//创建消息
+		messageProducer.send(message);//发送消息
+		session.commit();
+	} catch (Exception e) {
+		e.printStackTrace();
+	} finally{
+		if(connection != null){
+			try {
+				connection.close();
+			} catch (JMSException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+}
+ ```
+
+
+
+## 2.2、 消息消费者
+
+### 2.2.1、 直接receive的方式
+
+ ```java
+public static void main(String[] args) {
+	ConnectionFactory connectionFactory; // 连接工厂
+	Connection connection = null; // 连接
+	Session session; // 会话 接受或者发送消息的线程
+	Destination destination; // 消息的目的地
+	MessageConsumer messageConsumer; // 消息的消费者
+	
+	// 实例化连接工厂
+	connectionFactory=new ActiveMQConnectionFactory(JMSConsumer.USERNAME, JMSConsumer.PASSWORD, 
+JMSConsumer.BROKEURL);
+			
+	try {
+		connection=connectionFactory.createConnection();  // 通过连接工厂获取连接
+		connection.start(); // 启动连接
+		session=connection.createSession(Boolean.FALSE, Session.AUTO_ACKNOWLEDGE); // 创建Session
+		destination=session.createQueue("FirstQueue1");  // 创建连接的消息队列
+		messageConsumer=session.createConsumer(destination); // 创建消息消费者
+		while(true){
+			TextMessage textMessage=(TextMessage)messageConsumer.receive(3000);
+			if(textMessage!=null){
+				System.out.println("收到的消息："+textMessage.getText());
+			}else{
+				break;
+			}
+		}
+	} catch (JMSException e) {
+		e.printStackTrace();
+	} 
+}
+ ```
+
+
+
+### 2.2.2、 监听的方式（推荐）
+
+ ```java
+public static void main(String[] args) {
+	ConnectionFactory connectionFactory; // 连接工厂
+	Connection connection = null; // 连接
+	Session session; // 会话 接受或者发送消息的线程
+	Destination destination; // 消息的目的地
+	MessageConsumer messageConsumer; // 消息的消费者
+	
+	// 实例化连接工厂
+	connectionFactory=new ActiveMQConnectionFactory(ActiveMQConnection.DEFAULT_USER, 
+ActiveMQConnection.DEFAULT_PASSWORD, ActiveMQConnection.DEFAULT_BROKER_URL);
+			
+	try {
+		connection=connectionFactory.createConnection();  // 通过连接工厂获取连接
+		connection.start(); // 启动连接
+		session=connection.createSession(Boolean.FALSE, Session.AUTO_ACKNOWLEDGE); // 创建Session
+		destination=session.createQueue("FirstQueue1");  // 创建连接的消息队列
+		messageConsumer=session.createConsumer(destination); // 创建消息消费者
+		// 注册消息监听
+		messageConsumer.setMessageListener(new MessageListener() {
+			@Override
+			public void onMessage(Message message) {
+				try {
+					System.out.println("收到的消息："+((TextMessage)message).getText());
+				} catch (JMSException e) {
+					e.printStackTrace();
+				}
+			}
+		}); 
+	} catch (JMSException e) {
+		e.printStackTrace();
+	} 
+}
+ ```
+
+
+
+# 3、 topic发布订阅模式（一对多）
+
+一条消息发给多个消费者，要先启动消费者，再启动生产者
+
+先订阅再发布，只是这行代码不同。Destination destination = session.createTopic("FirstTopic1");
+
+# 4、 message
+
+消息头，消息体，消息属性
+
+## 4.1、 消息头
+
+```java
+//单独设置消息的发送地址 
+textMessage.setJMSDestination(topic);
+// DeliveryMode.PERSISTENT(持久的消息，mq重启后，消息不会丢失); 
+// DeliveryMode.NON_PERSISTENT(非持久的，mq重启后，消息丢失)
+textMessage.setJMSDeliveryMode(DeliveryMode.NON_PERSISTENT);
+// 设置消息的过期时间，默认永不过期
+textMessage.setJMSExpiration(1000);
+// 消息的优先级，0-4是普通消息，5-9是加急消息，
+textMessage.setJMSPriority(9);
+// 消息id，有默认的id，作为是否重复消费的依据
+textMessage.setJMSMessageID("");
+```
+
+
+
+## 4.2、 消息体
+
+![](D:\笔记\img\wps3.jpg) 
+
+ 
+
+## 4.3、 消息属性
+
+![](D:\笔记\img\wps4.jpg) 
+
+![](D:\笔记\img\wps5.jpg) 
+
+# 5、 消息的可靠性
+
+## 5.1、 持久化
+
+### 5.1.1、 队列的持久化
+
+1. 持久化(DeliveryMode.PERSISTENT)，宕机了，消息不会丢失（出队记录和入队记录会清空）
+
+2. 没持久化(DeliveryMode.NON_PERSISTENT)，宕机了，消息丢失
+
+3. 队列默认是持久的
+
+```java
+TextMessage textMessage = session.createTextMessage("消息" + i);
+//设置单个消息的持久化textMessage.setJMSDeliveryMode(DeliveryMode.PERSISTENT);
+MessageProducer producer = session.createProducer(queue1);
+//设置生产者的持久化producer.setDeliveryMode(DeliveryMode.PERSISTENT);
+```
+
+
+
+### 5.1.2、 主题的持久化
+
+1. 先运行一次消费者，向mq注册
+
+2. 然后运行生产者
+
+3. 消费者在线，会立即接收到，不在线，下次连接时，会把没有收到过的消息都收过来
+
+ ```java
+@Test
+public void testProduct() throws Exception {
+    Connection con = factory.createConnection("admin", "admin");
+    con.start();
+    Session session = con.createSession(false, Session.AUTO_ACKNOWLEDGE);
+
+    Topic topic = session.createTopic("topic1");
+
+    MessageProducer producer = session.createProducer(topic);
+    // 生产持久化的topic，默认的
+    producer.setDeliveryMode(DeliveryMode.PERSISTENT);
+
+    for (int i = 0; i < 10; i++) {
+        TextMessage textMessage = session.createTextMessage("消息" + i);
+        producer.send(textMessage);
+    }
+    producer.close();
+    session.close();
+    con.close();
+}
+@Test
+public void testConsumer() throws Exception {
+    Connection con = factory.createConnection("admin", "admin");
+    con.setClientID("张三");
+    con.start();
+
+    Session session = con.createSession(false, Session.AUTO_ACKNOWLEDGE);
+    Topic topic = session.createTopic("topic1");
+    // 持久的订阅者
+    TopicSubscriber subscriber = session.createDurableSubscriber(topic,"remark...");
+
+    // 监听模式
+    subscriber.setMessageListener(message -> {
+        TextMessage testMessage = (TextMessage) message;
+        if (testMessage != null) {
+            try {
+                System.out.println(testMessage.getText());
+            } catch (JMSException e) {
+                e.printStackTrace();
+            }
+        }
+    });
+    System.in.read();
+}
+ ```
+
+
+
+
+
+## 5.2、 事务
+
+事务的问题偏生产者
+
+```java
+Session session = con.createSession(true, Session.AUTO_ACKNOWLEDGE);
+try{
+    session.commit();
+}catch(Exception e){
+    // 出错可以回滚    session.rollback();
+}finally {
+    if(session != null) session.close();
+}
+```
+
+ 
+
+1. 如果是false，则每次producer.send(textMessage)都会直接把数据发送到mq, 相当于自动提交
+
+2. 如果是true，需要在session关闭前，执行session.commit();
+
+3. 如果是消费者，false，每次收到消息后，消息出队，自动提交
+
+4. 如果是true，则需要手动session.commit()，这样队列中的消息才会出队，否则队列中消息还在
+
+ 
+
+## 5.3、 acknowledgeMode（签收）
+
+```java
+Session session = con.createSession(false, Session.CLIENT_ACKNOWLEDGE);
+```
+
+消费者签收，需要手动的testMessage.acknowledge();否则消息不出队
+
+总结：
+
+1. 如果事务为true，需要commit，如果签收为CLIENT_ACKNOWLEDGE，则需要testMessage.acknowledge()，否则消息不出队
+
+2. 开启事务，如果事务提交，则自动签收
+
+3. 未开启事务，如果签收为CLIENT_ACKNOWLEDGE，则需要testMessage.acknowledge()
+
+ 
+
+# 6、 嵌入版ActiveMq
+
+将mq服务嵌入到代码中
+
+ ```java
+public static void main(String[] args) throws Exception {
+    BrokerService brokerService = new BrokerService();
+    brokerService.setUseJmx(true);
+    brokerService.addConnector("tcp://localhost:61616");
+    brokerService.start();
+}
+ ```
+
+
+
+# 7、 传输协议
+
+![](D:\笔记\img\wps6.jpg) 
+
+http://activemq.apache.org/tcp-transport-reference
+
+![](D:\笔记\img\wps7.jpg) 
+
+ 
+
+![](D:\笔记\img\wps8.jpg) 
+
+ 
+
+## 7.1、 配置nio
+
+vim conf/activemq.xml
+
+![](D:\笔记\img\wps9.jpg) 
+
+```xml
+<transportConnector name="nio" uri="nio://0.0.0.0:61618?trace=true"/>
+```
+
+这样配置就只支持tcp协议了，下面的配置可以既支持nio网络模型，又支持其他的协议
+
+ ```xml
+<transportConnector name="auto+nio" uri="auto+nio://0.0.0.0:61608?maximumConnections=1000&wireFormat.maxFrameSize=104857600&org.apache.activemq.transport.nio.SelectorManager.corePoolSize=20&org.apache.activemq.transport.nio.SelectorManager.maximumPoolSize=50" />
+ ```
+
+
+
+# 8、 持久化
+
+![](D:\笔记\img\wps10.jpg) 
+
+ 
+
+## 8.1、 KahaDB
+
+![](D:\笔记\img\wps11.jpg) 
+
+![](D:\笔记\img\wps12.jpg) 
+
+![](D:\笔记\img\wps13.jpg) 
+
+ 
+
+## 8.2、 JDBC
+
+### 8.2.1、 修改配置文件
+
+1. 首先将MySQL驱动放到lib目录下
+
+2. 修改配置文件，bean配置在broker标签外，beans标签内
+
+![](D:\笔记\img\wps14.jpg) 
+
+![](D:\笔记\img\wps15.jpg) 
+
+### 8.2.2、 创建activemq库
+
+![](D:\笔记\img\wps16.jpg) 
+
+### 8.2.3、 表介绍
+
+![](D:\笔记\img\wps17.jpg) 
+
+![](D:\笔记\img\wps18.jpg) 
+
+ 
+
+### 8.2.4、 小结
+
+![](D:\笔记\img\wps19.jpg) 
+
+ 
+
+![](D:\笔记\img\wps20.jpg) 
+
+### 8.2.5、 遇到的坑
+
+![](D:\笔记\img\wps21.jpg) 
+
+## 8.3、 Jdbc with journal
+
+![](D:\笔记\img\wps22.jpg) 
+
+配置方法，替换之前的jdbc配置
+
+![](D:\笔记\img\wps23.jpg) 
+
+ 
+
+# 9、 高可用zk + LevelDB
+
+![](D:\笔记\img\wps24.jpg) 
+
+ 
+
+1. 创建三个节点![](D:\笔记\img\wps25.jpg)
+
+2. 修改后台管理系统的端口，8161,8162,8163       /mq_cluster/node1/conf/jetty.xml
+3. vim /mq_cluster/node2/conf/activemq.xml
+
+```xml
+<persistenceAdapter>
+       <replicatedLevelDB
+        directory="${activemq.data}/leveldb"
+        replicas="3"
+        bind="tcp://0.0.0.0:63631" # 63632 63633 
+        zkAddress="node1:2181"
+        hostname="node1" 
+        sync="local_disk"
+        zkPath="/activemq/leveldb-stores"
+        />
+</persistenceAdapter>
+# 61616，61617，61618
+<transportConnector name="openwire" uri="tcp://0.0.0.0:61618? maximumConnections=1000&wireFormat.maxFrameSize=104857600"/>
+```
+
+
+
+4. 启动三台mq
+
+![](D:\笔记\img\wps26.jpg) 
+
+\5. 此时如果一台mq宕机，会从另外两台随意选一台
+
+\6. 客户端代码
+
+```java
+ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory("failover:(tcp://node1:61616,tcp://node1:61617,tcp://node1:61618)");
+```
+
+
+
+
+
+# 10、 面试
+
+## 10.1、 保证高可用
+
+Zk + replicated + leveldb_stroe 的主从集群
+
+## 10.2、 异步投递 async sends
+
+![](D:\笔记\img\wps27.jpg) 
+
+![](D:\笔记\img\wps28.jpg) 
+
+ 
+
+### 10.2.1、 异步投送如何确保发送成功
+
+![](D:\笔记\img\wps29.jpg) 
+
+```java
+MessageProducer producer = session.createProducer(queue1);
+ActiveMQMessageProducer activeMQMessageProducer = (ActiveMQMessageProducer) producer ;
+AsyncCallback callback = new AsyncCallback() {
+    @Override
+    public void onSuccess() {
+        System.out.println("发送成功！");
+    }
+
+    @Override
+    public void onException(JMSException exception) {
+        System.out.println("发送失败！");
+    }
+};
+
+for (int i = 0; i < 6; i++) {
+    TextMessage textMessage = session.createTextMessage("消息" + i);
+    activeMQMessageProducer.send(textMessage, callback);
+}
+```
+
+
+
+ 
+
+## 10.3、 延迟投递和定时投递
+
+ 
+
+\1. 开启支持延迟推送，修改
+
+![](D:\笔记\img\wps30.jpg) 
+
+ 
+
+![](D:\笔记\img\wps31.jpg) 
+
+```java
+textMessage.setIntProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY, 3  1000);
+textMessage.setIntProperty(ScheduledMessage.AMQ_SCHEDULED_PERIOD, 4  1000);
+textMessage.setIntProperty(ScheduledMessage.AMQ_SCHEDULED_REPEAT, 4);
+```
+
+ 
+
+## 10.4、 分发策略
+
+ 
+
+ 
+
+ 
+
+## 10.5、 消息重试机制
+
+![](D:\笔记\img\wps32.jpg) 
+
+![](D:\笔记\img\wps33.jpg) 
+
+```java
+RedeliveryPolicy policy = new RedeliveryPolicy();
+policy.setMaximumRedeliveries(3);
+factory.setRedeliveryPolicy(policy);
+```
+
+![](D:\笔记\img\wps34.jpg) 
+
+![](D:\笔记\img\wps35.jpg) 
+
+ 
+
+## 10.6、 死信队列
+
+![](D:\笔记\img\wps36.jpg) 
+
+ ```xml
+<policyEntry queue=">">
+	<deadLetterStrategy>
+		<!-- 死信队列默认的queue 名称为，DLQ.自己定义的queue名称 -->
+		<individualDeadLetterStrategy queuePrefix="DLQ." useQueueForQueueMessages="false" />
+		<!-- 不将过期消息放到DLQ中，默认true
+		<sharedDeadLetterStrategy processExpired="false" />  
+		-->
+		<!-- 不将非持久消息放入DLQ，默认false
+		<sharedDeadLetterStrategy processNonPersistent="true" />
+		-->
+	 </deadLetterStrategy>	
+</policyEntry>
+ ```
+
+
+
+## 10.7、 避免消息被重复消费
+
+![](D:\笔记\img\wps37.jpg) 
+
+ 
+
+# 11、 与Spring集成
+
+## 11.1、 pom文件
+
+ ```xml
+<dependency>
+	<groupId>org.apache.activemq</groupId>
+	<artifactId>activemq-all</artifactId>
+	<version>5.8.0</version>
+</dependency>
+<dependency>
+	<groupId>org.apache.activemq</groupId>
+	<artifactId>activemq-pool</artifactId>
+	<version>5.8.0</version>
+</dependency>
+ ```
+
+
+
+## 11.2、 发布方：beans.xml
+
+ ```xml
+<!-- AcitveMQ 配置-->
+<!-- 工厂  原厂商提供 -->
+<bean id="activeMQConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+	<!--  设置连接URL  -->
+	<property name="brokerURL" value="tcp://192.168.200.128:61616"/>
+	<!-- 用户名、 -->
+	<property name="userName" value="admin"/>
+	<!-- 密码、 -->
+	<property name="password" value="admin"/>
+</bean>
+<!-- 工厂连接池 -->
+<bean id="pooledConnectionFactoryBean" class="org.apache.activemq.pool.PooledConnectionFactoryBean">
+	<property name="connectionFactory" ref="activeMQConnectionFactory"/>
+	<!-- 最大 连接数 -->
+	<property name="maxConnections" value="2"/>
+</bean>
+
+<!-- Spring管理起上面的工厂 -->
+<bean id="connectionFactory" class="org.springframework.jms.connection.SingleConnectionFactory">
+	<!-- 注入上面的工厂连接池 -->
+	<property name="targetConnectionFactory" ref="pooledConnectionFactoryBean"/>
+</bean>
+
+<!-- JmsTemplate由Spring提供   -->
+<bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+	<property name="connectionFactory" ref="connectionFactory"/>
+	<!-- 默认目标 -->
+	<property name="defaultDestinationName" value="productId"/>
+	<!-- 默认点对点模式   false  /  true订阅模式     publish  sub-->
+	<property name="pubSubDomain" value="true"/>
+</bean>
+ ```
+
+
+
+## 11.3、 发布代码（点对点）
+
+ ```java
+@Autowired
+private JmsTemplate jmsTemplate;
+public void send(){
+	jmsTemplate.send(new MessageCreator() {
+		@Override
+		public Message createMessage(Session session) throws JMSException {
+			return session.createTextMessage("发布了"); 
+		}
+	});
+}
+ ```
+
+
+
+## 11.4、 消费方：beans.xml
+
+ ```xml
+<!-- AcitveMQ 配置-->
+<!-- 工厂  原厂商提供 -->
+<bean id="activeMQConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+	<!--  设置连接URL  -->
+	<property name="brokerURL" value="tcp://192.168.200.128:61616"/>
+	<!-- 用户名、 -->
+	<property name="userName" value="admin"/>
+	<!-- 密码、 -->
+	<property name="password" value="admin"/>
+</bean>
+<!-- 工厂连接池 -->
+<bean id="pooledConnectionFactoryBean" class="org.apache.activemq.pool.PooledConnectionFactoryBean">
+	<property name="connectionFactory" ref="activeMQConnectionFactory"/>
+	<!-- 最大 连接数 -->
+	<property name="maxConnections" value="2"/>
+</bean>
+
+<!-- Spring管理起上面的工厂 -->
+<bean id="connectionFactory" class="org.springframework.jms.connection.SingleConnectionFactory">
+	<!-- 注入上面的工厂连接池 -->
+	<property name="targetConnectionFactory" ref="pooledConnectionFactoryBean"/>
+</bean>
+
+<!-- JmsTemplate由Spring提供   -->
+<bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+	<property name="connectionFactory" ref="connectionFactory"/>
+	<!-- 默认目标 -->
+	<property name="defaultDestinationName" value="productId"/>
+</bean>
+
+<!-- 处理消息的类 -->
+<bean id="customMessageListener" class="cn.itcast.core.message.CustomMessageListener"/>
+
+<!-- Spring监听器  监听ActiveMQ中是否有消息 -->
+<bean class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+	<!-- 连接上ActiveMQ -->
+	<property name="connectionFactory" ref="connectionFactory"/>
+	<!-- 监听的目标 -->
+	<property name="destinationName" value="productId"/>
+	<!-- 监听到消息 之后  有个类处理此消息   处理回调消息的类 -->
+	<property name="messageListener" ref="customMessageListener"/>
+	<!-- 默认是点对点  改成true 就是订阅模式 -->
+	<property name="pubSubDomain" value="true"/>
+</bean>
+ ```
+
+
+
+## 11.5、 消费代码
+
+ ```java
+public class CustomMessageListener2 implements MessageListener{
+	
+	@Autowired
+	private SearchService searchServiceImpl;
+
+	@Override
+	public void onMessage(Message message) {
+		ActiveMQTextMessage activeMQTextMessage = (ActiveMQTextMessage)message;
+		try {
+			String id = activeMQTextMessage.getText();
+			System.out.println(id);
+		} catch (JMSException e) {
+			e.printStackTrace();
+		}
+	}
+}
+ ```
+
+
+
+## 11.6、 新巴巴
+
+![](D:\笔记\img\wps38.jpg) 
+
+ 
